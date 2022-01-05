@@ -9,19 +9,25 @@ const braceClose = "}"
 const propClass = "property"
 
 
+/** Hacky function to associate a jsonld context to a schema. */
 const contestualizza = (key, ctx) => {
   if (!ctx) return "No semantics"
 
   let field = ctx.get(key)
+  let vocab = ctx.get("@vocab") || ""
   let vocabularyUri = null
-  if (!field) return "No semantics"
+  if (field === null) {
+    return "No semantics"
+  }
+  if (field === undefined) {
+    field = key
+  }
 
   if (typeof field !== "string") {
     const fieldCtx = field.get("@context")
     field = field.get("@id")
     vocabularyUri = fieldCtx && fieldCtx.get("@base") || null
   }
-  let vocab = ctx.get("@vocab") || ""
   return (
     <div>
       <a href={vocab + field}>
@@ -56,8 +62,6 @@ export default class ObjectModel extends Component {
     specPath: ImPropTypes.list.isRequired,
     includeReadOnly: PropTypes.bool,
     includeWriteOnly: PropTypes.bool,
-    jsonldContext: PropTypes.object,
-    canonized: PropTypes.string,
   }
 
 
@@ -68,12 +72,10 @@ export default class ObjectModel extends Component {
       const ctx = this.props.schema.get("x-jsonld-context") && this.props.schema.get("x-jsonld-context").toJS() || {}
       doc["@context"] = ctx
       console.log("toRdf", doc)
-      const canonized = await jsonld.toRDF(doc,
-      { format: "application/n-quads" })
-
+      const rdfExample = await jsonld.toRDF(doc, { format: "application/n-quads" })
       if (!this.state) {
-        this.setState({ canonized: canonized})
-        console.log("canonized", canonized)
+        this.setState({ rdfExample: rdfExample})
+        console.log("rdfExample", rdfExample)
       }
     } catch (e) {
       console.error(e)
@@ -88,7 +90,7 @@ export default class ObjectModel extends Component {
 
   render(){
     let { schema, name, displayName, isRef, getComponent, getConfigs, depth, onToggle, expanded, specPath, ...otherProps } = this.props
-    let { specSelectors,expandDepth, includeReadOnly, includeWriteOnly, jsonldContext, canonized} = otherProps
+    let { specSelectors,expandDepth, includeReadOnly, includeWriteOnly} = otherProps
     const { isOAS3 } = specSelectors
 
     if(!schema) {
@@ -97,7 +99,7 @@ export default class ObjectModel extends Component {
 
     const { showExtensions } = getConfigs()
 
-    let semantics = schema.get("x-jsonld-context") || jsonldContext || {}
+    let jsonldContext = schema.get("x-jsonld-context") || {}
     let description = schema.get("description")
     let properties = schema.get("properties")
     let additionalProperties = schema.get("additionalProperties")
@@ -133,7 +135,7 @@ export default class ObjectModel extends Component {
       <span className="model-title__text">{ title }</span>
     </span>
 
-    if (example) {
+    if (example && jsonldContext) { // FIXME: how to invoke this?
       this.toRdf()
     }
     return <span className="model">
@@ -154,7 +156,7 @@ export default class ObjectModel extends Component {
               {
                 !description ? null : <tr className="description">
                     <td>description:</td>
-                    <td>
+                    <td colSpan={2}>
                       <Markdown source={ description } />
                     </td>
                   </tr>
@@ -196,6 +198,7 @@ export default class ObjectModel extends Component {
                         <td>
                           { key }{ isRequired && <span className="star">*</span> }
                         </td>
+                        <td>{jsonldContext && contestualizza(key, jsonldContext)}</td>
                         <td>
                           <Model key={ `object-${name}-${key}_${value}` } { ...otherProps }
                                  required={ isRequired }
@@ -205,7 +208,6 @@ export default class ObjectModel extends Component {
                                  schema={ value }
                                  depth={ depth + 1 } />
                         </td>
-                        <td>{semantics && contestualizza(key, semantics)}</td>
                       </tr>)
                     }).toArray()
               }
@@ -304,17 +306,21 @@ export default class ObjectModel extends Component {
       {
         infoProperties.size ? infoProperties.entrySeq().map( ( [ key, v ] ) => <Property key={`${key}-${v}`} propKey={ key } propVal={ v } propClass={ propClass } />) : null
       }
-      {
-        example &&
-         <div>canonized: <pre>
-           {this.state && this.state.canonized}
-           </pre>
-          </div>
+      <hr/>
+      { 
+        example && 
+              <ModelCollapse title="Example in RDF:">
+                <div style={{backgroundColor: "lightyellow"}}>
+                  <pre>
+                  {this.state && this.state.rdfExample}
+                  </pre>
+                </div>
+              </ModelCollapse>
       }
       <hr/>
-          <div className="model">JSON-LD Context
-    <pre>{ semantics && JSON.stringify(semantics, null, 2) || "{}"}</pre>
-    </div>
+      <ModelCollapse title="JSON-LD Context">
+        <pre>{ jsonldContext && JSON.stringify(jsonldContext, null, 2) || "{}"}</pre>
+      </ModelCollapse>
     </span>
   }
 }

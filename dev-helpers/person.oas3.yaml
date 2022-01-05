@@ -70,6 +70,7 @@ components:
           "@type": "@id"
           "@context": 
             "@base": "https://w3id.org/italia/data/identifiers/provinces-identifiers/vehicle-code/"
+        interno: null
       properties:
         city:
           type: string
@@ -83,10 +84,19 @@ components:
           type: string
           description: The iso alpha-3 code of the country where the person was born.
           example: ITA
+        postCode:
+          type: string
+          description: The post code (zip code)
+          example: "00100"
+        interno:
+          type: string
+          maxLength: 32
       example:
         city: Roma
         province: RM
         country: ITA  
+        postCode: "00100"
+        interno: "Interno 8"
     Person:
       type: object
       x-refersTo: https://w3id.org/italia/onto/CPV/Person
