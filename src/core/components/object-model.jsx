@@ -1,11 +1,44 @@
 import React, { Component, } from "react"
-import PropTypes from "prop-types"
+import PropTypes, { func } from "prop-types"
 import { List } from "immutable"
 import ImPropTypes from "react-immutable-proptypes"
+import jsonld from "jsonld"
 
 const braceOpen = "{"
 const braceClose = "}"
 const propClass = "property"
+
+
+const contestualizza = (key, ctx) => {
+  if (!ctx) return "No semantics"
+
+  let field = ctx.get(key)
+  let vocabularyUri = null
+  if (!field) return "No semantics"
+
+  if (typeof field !== "string") {
+    const fieldCtx = field.get("@context")
+    field = field.get("@id")
+    vocabularyUri = fieldCtx && fieldCtx.get("@base") || null
+  }
+  let vocab = ctx.get("@vocab") || ""
+  return (
+    <div>
+      <a href={vocab + field}>
+        {field}
+      </a>&nbsp;
+      <span>{
+        vocabularyUri && 
+          <a 
+           href={vocabularyUri}
+           title={ "This value is relative to the vocabulary " + vocabularyUri }>[vocabulary]</a>
+          }
+      </span>
+    </div>
+  )
+}
+
+
 
 export default class ObjectModel extends Component {
   static propTypes = {
@@ -23,11 +56,39 @@ export default class ObjectModel extends Component {
     specPath: ImPropTypes.list.isRequired,
     includeReadOnly: PropTypes.bool,
     includeWriteOnly: PropTypes.bool,
+    jsonldContext: PropTypes.object,
+    canonized: PropTypes.string,
   }
+
+
+  async toRdf() {
+    try {
+      console.log(this)
+      let doc = this.props.schema.get("example") && this.props.schema.get("example").toJS() || {}
+      const ctx = this.props.schema.get("x-jsonld-context") && this.props.schema.get("x-jsonld-context").toJS() || {}
+      doc["@context"] = ctx
+      console.log("toRdf", doc)
+      const canonized = await jsonld.toRDF(doc,
+      { format: "application/n-quads" })
+
+      if (!this.state) {
+        this.setState({ canonized: canonized})
+        console.log("canonized", canonized)
+      }
+    } catch (e) {
+      console.error(e)
+      return (
+        <div>RDF example
+          <pre>{e.message}</pre>
+        </div>
+      )
+    }
+  }
+
 
   render(){
     let { schema, name, displayName, isRef, getComponent, getConfigs, depth, onToggle, expanded, specPath, ...otherProps } = this.props
-    let { specSelectors,expandDepth, includeReadOnly, includeWriteOnly} = otherProps
+    let { specSelectors,expandDepth, includeReadOnly, includeWriteOnly, jsonldContext, canonized} = otherProps
     const { isOAS3 } = specSelectors
 
     if(!schema) {
@@ -36,6 +97,7 @@ export default class ObjectModel extends Component {
 
     const { showExtensions } = getConfigs()
 
+    let semantics = schema.get("x-jsonld-context") || jsonldContext || {}
     let description = schema.get("description")
     let properties = schema.get("properties")
     let additionalProperties = schema.get("additionalProperties")
@@ -44,6 +106,7 @@ export default class ObjectModel extends Component {
     let infoProperties = schema
       .filter( ( v, key) => ["maxProperties", "minProperties", "nullable", "example"].indexOf(key) !== -1 )
     let deprecated = schema.get("deprecated")
+    let example = schema.get("example") ? schema.get("example").toJS() : {}
 
     const JumpToPath = getComponent("JumpToPath", true)
     const Markdown = getComponent("Markdown", true)
@@ -70,6 +133,9 @@ export default class ObjectModel extends Component {
       <span className="model-title__text">{ title }</span>
     </span>
 
+    if (example) {
+      this.toRdf()
+    }
     return <span className="model">
       <ModelCollapse
         modelName={name}
@@ -139,6 +205,7 @@ export default class ObjectModel extends Component {
                                  schema={ value }
                                  depth={ depth + 1 } />
                         </td>
+                        <td>{semantics && contestualizza(key, semantics)}</td>
                       </tr>)
                     }).toArray()
               }
@@ -237,6 +304,17 @@ export default class ObjectModel extends Component {
       {
         infoProperties.size ? infoProperties.entrySeq().map( ( [ key, v ] ) => <Property key={`${key}-${v}`} propKey={ key } propVal={ v } propClass={ propClass } />) : null
       }
+      {
+        example &&
+         <div>canonized: <pre>
+           {this.state && this.state.canonized}
+           </pre>
+          </div>
+      }
+      <hr/>
+          <div className="model">JSON-LD Context
+    <pre>{ semantics && JSON.stringify(semantics, null, 2) || "{}"}</pre>
+    </div>
     </span>
   }
 }
