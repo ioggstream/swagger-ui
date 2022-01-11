@@ -11,27 +11,37 @@ const propClass = "property"
 
 /** Hacky function to associate a jsonld context to a schema. */
 const contestualizza = (key, ctx) => {
+  console.log("contestualizza", key, ctx)
   if (!ctx) return "No semantics"
 
   let field = ctx.get(key)
   let vocab = ctx.get("@vocab") || ""
   let vocabularyUri = null
+  let ns = ""
   if (field === null) {
     return "No semantics"
   }
   if (field === undefined) {
     field = key
   }
-
   if (typeof field !== "string") {
     const fieldCtx = field.get("@context")
     field = field.get("@id")
     vocabularyUri = fieldCtx && fieldCtx.get("@base") || null
   }
+  console.log("field", field, "type", typeof field)
+  if (typeof field === "string" && field.includes(":")) {
+    console.log("processing : field", field)
+    const [a, b] = field.split(":", 2)
+    field = b
+    ns = a
+    vocab = ctx.get(ns) || ""
+  } 
+ 
   return (
     <div>
       <a href={vocab + field}>
-        {field}
+        {(ns ? ns + ":" : "" )+ field}
       </a>&nbsp;
       <span>{
         vocabularyUri && 
