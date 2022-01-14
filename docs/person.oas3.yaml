@@ -16,6 +16,43 @@ info:
     email: robipolli@gmail.com
     url: http://spcdata.digitpa.gov.it/Amministrazione/agid
   description: |-
+  
+    ## Welcome!
+    
+    This patched version of SwaggerUI renders semantic information embedded into an OAS3 schema
+    using the custom `x-jsonld-context` property.
+    
+    ```yaml
+     BirthPlace:
+      # Add the json-ld context (e.g. the one you'd 
+      #  place in @context).
+      x-jsonld-context:
+        "@vocab": "https://w3id.org/italia/onto/CLV/"
+        country:
+          "@id": "hasCountry"
+          "@type": "@id"
+          "@context":
+            "@base": "http://publications.europa.eu/resource/authority/country/"
+      # then define the schema...
+      type: object
+      properties:
+        country:
+          type: string
+          format: [A-Z0-9]{3}
+      # .. finally an example ...
+      example:
+        country: ITA
+    ```
+    
+    The application  applies the provided context to the provied example,
+    thus creating an RDF object;    
+    moreover it adds the context information while rendering the json-schema properties.
+    
+    ## Try with your schema
+    
+    Annotate your schema with `x-jsonld-context`, paste its URL in the application
+    
+    ## This schema
     This Person schema is derived from the [CPV/Person](https://w3id.org/italia/onto/CPV/Person) ontology.
 
     This description field can be rendered in markdown or in text-only in catalogues
