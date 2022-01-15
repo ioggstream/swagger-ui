@@ -13,6 +13,8 @@ const propClass = "property"
 const contestualizza = (key, ctx) => {
   console.log("contestualizza", key, ctx)
   if (!ctx) return "No semantics"
+  if (typeof ctx !== "object") return "Only object contexts are supported"
+  if (!Object.keys(ctx).length) return "No semantics"
 
   let field = ctx.get(key)
   let vocab = ctx.get("@vocab") || ""

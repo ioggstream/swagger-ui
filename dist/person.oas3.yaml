@@ -16,6 +16,43 @@ info:
     email: robipolli@gmail.com
     url: http://spcdata.digitpa.gov.it/Amministrazione/agid
   description: |-
+
+    ## Welcome!
+
+    This patched version of SwaggerUI renders semantic information embedded into an OAS3 schema
+    using the custom `x-jsonld-context` property.
+
+    ```yaml
+     BirthPlace:
+      # Add the json-ld context (e.g. the one you'd
+      #  place in @context).
+      x-jsonld-context:
+        "@vocab": "https://w3id.org/italia/onto/CLV/"
+        country:
+          "@id": "hasCountry"
+          "@type": "@id"
+          "@context":
+            "@base": "http://publications.europa.eu/resource/authority/country/"
+      # then define the schema...
+      type: object
+      properties:
+        country:
+          type: string
+          format: [A-Z0-9]{3}
+      # .. finally an example ...
+      example:
+        country: ITA
+    ```
+
+    The application  applies the provided context to the provied example,
+    thus creating an RDF object;
+    moreover it adds the context information while rendering the json-schema properties.
+
+    ## Try with your schema
+
+    Annotate your schema with `x-jsonld-context`, paste its URL in the application
+
+    ## This schema
     This Person schema is derived from the [CPV/Person](https://w3id.org/italia/onto/CPV/Person) ontology.
 
     This description field can be rendered in markdown or in text-only in catalogues
@@ -28,7 +65,7 @@ components:
     TaxCode:
       type: string
       # Since jsonld does not support to attacha @context
-      #  to a primitive type, we reference the semantic 
+      #  to a primitive type, we reference the semantic
       #  context using `x-refersTo.`
       x-refersTo: https://w3id.org/italia/onto/CPV/taxCode
       description: Il codice fiscale.
@@ -65,10 +102,10 @@ components:
           "@type": "@id"
           "@context":
             "@base": "http://publications.europa.eu/resource/authority/country/"
-        province: 
+        province:
           "@id": "hasProvince"
           "@type": "@id"
-          "@context": 
+          "@context":
             "@base": "https://w3id.org/italia/data/identifiers/provinces-identifiers/vehicle-code/"
         interno: null
       properties:
@@ -94,7 +131,7 @@ components:
       example:
         city: Roma
         province: RM
-        country: ITA  
+        country: ITA
         postCode: "00100"
         interno: "Interno 8"
     Person:
@@ -114,9 +151,9 @@ components:
           "@type": "@id"
           "@context":
             "@base": "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level/"
-        birth_place: 
+        birth_place:
           "@id": "hasBirthPlace"
-          "@context": 
+          "@context":
             <<: *BirthPlaceContext
         children:
           "@id": isParentOf
