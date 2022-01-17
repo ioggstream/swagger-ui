@@ -64,7 +64,7 @@ components:
   schemas:
     TaxCode:
       type: string
-      # Since jsonld does not support to attacha @context
+      # Since jsonld does not support to attach a @context
       #  to a primitive type, we reference the semantic
       #  context using `x-refersTo.`
       x-refersTo: https://w3id.org/italia/onto/CPV/taxCode
@@ -72,6 +72,24 @@ components:
       example: RSSMRA75L01H501A
       maxLength: 16
       minLength: 11
+      pattern: >-
+        [A-Z0-9]{16}
+
+    EducationLevel:
+      x-jsonld-context:
+        "@vocab": "https://w3id.org/italia/onto/CPV/"
+        educationLevel:
+          "@id": "hasEducationLevel"
+          "@type": "@id"
+          "@context":
+            "@base": "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level/"
+      type: object
+      additionalProperties: false
+      properties:
+        education_level:
+          $ref: "https://onto.robertopolli.it/vocabularies/v1/vocabularies-schema/education-level?schema_type=anyOfenum#/SchemaVocabulary"
+      example:
+        education_level: NED
     Parent:
       x-jsonld-context:
         "@vocab": "https://w3id.org/italia/onto/CPV/"
@@ -215,3 +233,4 @@ components:
     ExportedSchemas:
       anyOf:
         - $ref: "#/components/schemas/Person"
+        - $ref: "#/components/schemas/EducationLevel"
