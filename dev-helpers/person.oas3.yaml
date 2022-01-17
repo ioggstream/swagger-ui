@@ -78,7 +78,7 @@ components:
     EducationLevel:
       x-jsonld-context:
         "@vocab": "https://w3id.org/italia/onto/CPV/"
-        educationLevel:
+        education_level:
           "@id": "hasEducationLevel"
           "@type": "@id"
           "@context":

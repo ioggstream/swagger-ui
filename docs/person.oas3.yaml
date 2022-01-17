@@ -78,8 +78,8 @@ components:
     EducationLevel:
       x-jsonld-context:
         "@vocab": "https://w3id.org/italia/onto/CPV/"
-        educationLevel:
-          "@id": "hasEducationLevel"
+        education_level:
+          "@id": "hasLevelOfEducation"
           "@type": "@id"
           "@context":
             "@base": "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level/"
@@ -165,7 +165,7 @@ components:
         given_name: givenName
         family_name: familyName
         education_level:
-          "@id": hasEducationLevel
+          "@id": hasLevelOfEducation
           "@type": "@id"
           "@context":
             "@base": "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level/"

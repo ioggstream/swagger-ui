@@ -48,8 +48,8 @@ const contestualizza = (key, ctx) => {
       <span>{
         vocabularyUri &&
           <a
-           href={vocabularyUri}
-           title={ "This value is relative to the vocabulary " + vocabularyUri }>[vocabulary]</a>
+           href={vocabularyUri.replace(/\/$/, "")}
+           title={ "This value is relative to the vocabulary " + vocabularyUri.replace(/\/$/, "") }>[vocabulary]</a>
           }
       </span>
     </div>
@@ -146,6 +146,12 @@ export default class ObjectModel extends Component {
       { isRef && schema.get("$$ref") && <span className="model-hint">{ schema.get("$$ref") }</span> }
       <span className="model-title__text">{ title }</span>
     </span>
+
+    const jsonldPlaygroundUrl = "https://json-ld.org/playground/#startTab=tab-expand&json-ld=" 
+    const openInPlayground = (example && jsonldContext &&
+      <a href={ jsonldPlaygroundUrl + encodeURIComponent(JSON.stringify({ "@context": jsonldContext, ...example}))} >Open in playground 🔗</a>
+    )
+
 
     if (example && jsonldContext) { // FIXME: how to invoke this?
       this.toRdf()
@@ -318,7 +324,7 @@ export default class ObjectModel extends Component {
       {
         infoProperties.size
           ? infoProperties.entrySeq().map( ( [ key, v ] ) => {
-            if (key !== "example") { // exapmle is rendered below
+            if (!(key in ["example", "x-jsonld-context"])) { // exapmle is rendered below
               return <Property key={`${key}-${v}`} propKey={ key } propVal={ v } propClass={ propClass } />
             }
           })
@@ -327,7 +333,8 @@ export default class ObjectModel extends Component {
       <hr/>
       {
         example &&
-              <ModelCollapse title="Example in JSON and RDF:" expanded={true}>
+              <ModelCollapse title={"Example in JSON and RDF:"} expanded={true}>
+                  {openInPlayground}
                   <pre>{JSON.stringify(example, null, 2)}</pre>
                   <div style={{backgroundColor: "lightyellow"}}>
                     <pre>
