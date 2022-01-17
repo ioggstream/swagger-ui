@@ -137,22 +137,22 @@ export default class Info extends React.Component {
           { url && <InfoUrl getComponent={getComponent} url={url} /> }
         </hgroup>
 
-        <ModelCollapse title="Description">
-          <div className="description">
+        <ModelCollapse title="Show/hide information" expanded={true}>
+          <div className="info">
             <Markdown source={ description } />
           </div>
-        </ModelCollapse>
-        {
-          termsOfServiceUrl && <div className="info__tos">
-            <Link target="_blank" href={ sanitizeUrl(termsOfServiceUrl) }>Terms of service</Link>
-          </div>
-        }
+          {
+            termsOfServiceUrl && <div className="info__tos">
+              <Link target="_blank" href={ sanitizeUrl(termsOfServiceUrl) }>Terms of service</Link>
+            </div>
+          }
 
-        {contact && contact.size ? <Contact getComponent={getComponent} data={ contact } selectedServer={selectedServer} url={url} /> : null }
-        {license && license.size ? <License getComponent={getComponent} license={ license } selectedServer={selectedServer} url={url}/> : null }
-        { externalDocsUrl ?
-            <Link className="info__extdocs" target="_blank" href={sanitizeUrl(externalDocsUrl)}>{externalDocsDescription || externalDocsUrl}</Link>
-        : null }
+          {contact && contact.size ? <Contact getComponent={getComponent} data={ contact } selectedServer={selectedServer} url={url} /> : null }
+          {license && license.size ? <License getComponent={getComponent} license={ license } selectedServer={selectedServer} url={url}/> : null }
+          { externalDocsUrl ?
+              <Link className="info__extdocs" target="_blank" href={sanitizeUrl(externalDocsUrl)}>{externalDocsDescription || externalDocsUrl}</Link>
+          : null }
+        </ModelCollapse>
 
       </div>
     )
