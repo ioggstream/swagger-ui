@@ -91,11 +91,11 @@ export default class BaseLayout extends React.Component {
           <SvgAssets />
           <VersionPragmaFilter isSwagger2={isSwagger2} isOAS3={isOAS3} alsoShow={<Errors/>}>
             <Errors/>
-            <Row className="information-container">
-              <Col mobile={12}>
-                <InfoContainer/>
-              </Col>
-            </Row>
+              <Row className="information-container">
+                <Col mobile={12}>
+                  <InfoContainer/>
+                </Col>
+              </Row>
 
             {hasServers || hasSchemes || hasSecurityDefinitions ? (
               <div className="scheme-container">
@@ -108,15 +108,14 @@ export default class BaseLayout extends React.Component {
             ) : null}
 
             <FilterContainer/>
-
             <Row>
               <Col mobile={12} desktop={12} >
-                <Operations/>
+                <Models/>
               </Col>
             </Row>
             <Row>
               <Col mobile={12} desktop={12} >
-                <Models/>
+                <Operations/>
               </Col>
             </Row>
           </VersionPragmaFilter>

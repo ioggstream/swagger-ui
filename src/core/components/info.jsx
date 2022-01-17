@@ -3,6 +3,7 @@ import PropTypes from "prop-types"
 import ImPropTypes from "react-immutable-proptypes"
 import { sanitizeUrl } from "core/utils"
 import { safeBuildUrl } from "core/utils/url"
+import ModelCollapse from "./model-collapse"
 
 
 export class InfoBasePath extends React.Component {
@@ -136,10 +137,11 @@ export default class Info extends React.Component {
           { url && <InfoUrl getComponent={getComponent} url={url} /> }
         </hgroup>
 
-        <div className="description">
-          <Markdown source={ description } />
-        </div>
-
+        <ModelCollapse title="Description">
+          <div className="description">
+            <Markdown source={ description } />
+          </div>
+        </ModelCollapse>
         {
           termsOfServiceUrl && <div className="info__tos">
             <Link target="_blank" href={ sanitizeUrl(termsOfServiceUrl) }>Terms of service</Link>
