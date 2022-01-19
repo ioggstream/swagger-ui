@@ -76,7 +76,7 @@ export class DictModel extends Component {
       `
     const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
-    const endpoint = "http://0.0.0.0:5000/" + jsonpUri
+    const endpoint = "https://crossorigin.me/" + jsonpUri
 
     fetch(endpoint)
       .then((response) => {
