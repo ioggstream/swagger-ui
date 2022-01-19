@@ -8,9 +8,13 @@ const braceOpen = "{"
 const braceClose = "}"
 const propClass = "property"
 
+const basename = (path) => {
+    return path.replace(/.*\/|\.[^.]*$/g, "")
+ }
+
 
 /** Hacky function to associate a jsonld context to a schema. */
-const contestualizza = (key, ctx) => {
+const contestualizza = (key, ctx, getComponent) => {
   console.log("contestualizza", key, ctx)
   if (!ctx) return "No semantics"
   if (typeof ctx !== "object") return "Only object contexts are supported"
@@ -29,7 +33,7 @@ const contestualizza = (key, ctx) => {
   if (typeof field !== "string") {
     const fieldCtx = field.get("@context")
     field = field.get("@id")
-    vocabularyUri = fieldCtx && fieldCtx.get("@base") || null
+    vocabularyUri = fieldCtx && fieldCtx.get("@base") && fieldCtx.get("@base").replace(/[/#]$/, "") || null
   }
   console.log("field", field, "type", typeof field)
   if (typeof field === "string" && field.includes(":")) {
@@ -40,22 +44,81 @@ const contestualizza = (key, ctx) => {
     vocab = ctx.get(ns) || ""
   }
 
+  // "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level"
   return (
     <div>
       <a href={vocab + field}>
         {(ns ? ns + ":" : "" )+ field}
       </a>&nbsp;
-      <span>{
-        vocabularyUri &&
-          <a
-           href={vocabularyUri.replace(/\/$/, "")}
-           title={ "This value is relative to the vocabulary " + vocabularyUri.replace(/\/$/, "") }>[vocabulary]</a>
-          }
-      </span>
+      <span><DictModel url={ vocabularyUri } getComponent={getComponent}/></span>
     </div>
   )
 }
 
+//    "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
+
+export class DictModel extends Component {
+  static propTypes = {
+    url: PropTypes.string.isRequired,
+    getComponent: PropTypes.func.isRequired,
+  }
+
+
+  getOntology = () => {
+    const query = `
+      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+
+      select distinct * where { 
+        ?field rdfs:domain ?domain .
+        ?field rdfs:range ?class .
+        ?class _:b1 <${this.props.url}>
+      }
+      `
+    const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
+    const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
+    const endpoint = "http://172.17.0.1:5000/" + jsonpUri 
+
+    fetch(endpoint)
+      .then((response) => response.json())
+      .then((data) => {
+        const triple = data.results.bindings[0]
+        const content = Object.fromEntries(
+          Object.entries(triple).map(
+            ([k,v], i) => [k, v.value] )
+        )
+        console.log("semantic data", content)
+        this.setState({data: content})
+        })
+  }
+
+  render() {
+    let { url, getComponent, ...otherProps } = this.props
+    console.log("url", url, otherProps)
+    const ModelCollapse = getComponent("ModelCollapse")
+
+    if (!url) return <div>NoVoc</div>
+
+    if (this.state == undefined) {
+      this.getOntology()
+    }
+    return (
+      <div className="App">
+        {
+          this.state && this.state.data &&
+          <div>
+            <ModelCollapse isOpened={false} title={"Vocabulary"}><br/>
+
+              <a title={ "This value is relative to the vocabulary " + url } >Vocabulary</a>
+              <a href={this.state.data.class}> { "RDF Type:" + basename(this.state.data.class)}</a>
+              <a href={this.state.data.field}> { "Property:" + basename(this.state.data.field)}</a>
+              <a href={this.state.data.domain}>{ "Domain:" + basename(this.state.data.domain)}</a>
+            </ModelCollapse>
+          </div>
+        }
+      </div>
+    )
+  }
+}
 
 
 export default class ObjectModel extends Component {
@@ -80,7 +143,10 @@ export default class ObjectModel extends Component {
   async toRdf() {
     try {
       console.log(this)
-      let doc = this.props.schema.get("example") && this.props.schema.get("example").toJS() || {}
+      let doc = this.props.schema.get("example")
+      if (doc && doc.toJS){
+        doc = doc.toJS()
+      }
       const ctx = this.props.schema.get("x-jsonld-context") && this.props.schema.get("x-jsonld-context").toJS() || {}
       doc["@context"] = ctx
       console.log("toRdf", doc)
@@ -216,7 +282,7 @@ export default class ObjectModel extends Component {
                         <td>
                           { key }{ isRequired && <span className="star">*</span> }
                         </td>
-                        <td>{jsonldContext && contestualizza(key, jsonldContext)}</td>
+                        <td>{jsonldContext && contestualizza(key, jsonldContext, getComponent)}</td>
                         <td>
                           <Model key={ `object-${name}-${key}_${value}` } { ...otherProps }
                                  required={ isRequired }
