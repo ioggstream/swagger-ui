@@ -66,9 +66,9 @@ export class DictModel extends Component {
 
   getOntology = () => {
     const query = `
-      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> 
+      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-      select distinct * where { 
+      select distinct * where {
         ?field rdfs:domain ?domain .
         ?field rdfs:range ?class .
         ?class _:b1 <${this.props.url}>
@@ -76,7 +76,7 @@ export class DictModel extends Component {
       `
     const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
-    const endpoint = "http://172.17.0.1:5000/" + jsonpUri 
+    const endpoint = "http://172.17.0.1:5000/" + jsonpUri
 
     fetch(endpoint)
       .then((response) => response.json())
@@ -108,10 +108,10 @@ export class DictModel extends Component {
           <div>
             <ModelCollapse isOpened={false} title={"Vocabulary"}><br/>
 
-              <a title={ "This value is relative to the vocabulary " + url } >Vocabulary</a>
-              <a href={this.state.data.class}> { "RDF Type:" + basename(this.state.data.class)}</a>
-              <a href={this.state.data.field}> { "Property:" + basename(this.state.data.field)}</a>
-              <a href={this.state.data.domain}>{ "Domain:" + basename(this.state.data.domain)}</a>
+            <br/><a href={url} title={ "This value is relative to the vocabulary " + url } >Vocabulary URL</a>
+            <br/>Entry RDF Type: <a href={this.state.data.class}> { basename(this.state.data.class)}</a>
+            <br/>Property <a href={this.state.data.field}> { basename(this.state.data.field)}</a>
+            <br/>of Class <a href={this.state.data.domain}>{ basename(this.state.data.domain)}</a>
             </ModelCollapse>
           </div>
         }
@@ -213,7 +213,7 @@ export default class ObjectModel extends Component {
       <span className="model-title__text">{ title }</span>
     </span>
 
-    const jsonldPlaygroundUrl = "https://json-ld.org/playground/#startTab=tab-expand&json-ld=" 
+    const jsonldPlaygroundUrl = "https://json-ld.org/playground/#startTab=tab-expand&json-ld="
     const openInPlayground = (example && jsonldContext &&
       <a href={ jsonldPlaygroundUrl + encodeURIComponent(JSON.stringify({ "@context": jsonldContext, ...example}))} >Open in playground 🔗</a>
     )
