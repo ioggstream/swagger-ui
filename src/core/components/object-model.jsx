@@ -76,17 +76,19 @@ export class DictModel extends Component {
       `
     const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
-    const endpoint = "https://crossorigin.me/" + jsonpUri
+    const endpoint = "https://api.allorigins.win/get?url=" + encodeURIComponent(jsonpUri)
 
     fetch(endpoint)
       .then((response) => {
+        console.log("response", response)
         if (!response.ok) {
           throw Error(response.statusText)
         }
-        response.json()
+        return response.json()
         })
       .then((data) => {
-        const triple = data.results.bindings[0]
+        console.log("fetched data", data)
+        const triple = JSON.parse(data.contents).results.bindings[0]
         const content = Object.fromEntries(
           Object.entries(triple).map(
             ([k,v], i) => [k, v.value] )
