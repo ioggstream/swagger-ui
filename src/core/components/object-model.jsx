@@ -76,10 +76,15 @@ export class DictModel extends Component {
       `
     const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
-    const endpoint = "http://172.17.0.1:5000/" + jsonpUri
+    const endpoint = "http://0.0.0.0:5000/" + jsonpUri
 
     fetch(endpoint)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw Error(response.statusText)
+        }
+        response.json()
+        })
       .then((data) => {
         const triple = data.results.bindings[0]
         const content = Object.fromEntries(
@@ -89,6 +94,10 @@ export class DictModel extends Component {
         console.log("semantic data", content)
         this.setState({data: content})
         })
+      .catch((e) => {
+        console.log("error fetching data from %s", endpoint, e)
+        this.setState({data: {field: "Error fetching data", class: "", domain: ""}})
+      })
   }
 
   render() {
@@ -99,13 +108,17 @@ export class DictModel extends Component {
     if (!url) return <div>NoVoc</div>
 
     if (this.state == undefined) {
-      this.getOntology()
+      try {
+        this.getOntology()
+      } catch {
+        this.setState({data: {}})
+      }
     }
     return (
       <div className="App">
         {
           this.state && this.state.data &&
-          <div>
+          <div style={{backgroundColor: "lightyellow"}}>
             <ModelCollapse isOpened={false} title={"Vocabulary"}><br/>
 
             <br/><a href={url} title={ "This value is relative to the vocabulary " + url } >Vocabulary URL</a>
