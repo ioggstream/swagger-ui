@@ -44,7 +44,6 @@ const contestualizza = (key, ctx, getComponent) => {
     vocab = ctx.get(ns) || ""
   }
 
-  // "https://w3id.org/italia/controlled-vocabulary/classifications-for-people/education-level"
   return (
     <div>
       <a href={vocab + field}>
@@ -55,7 +54,6 @@ const contestualizza = (key, ctx, getComponent) => {
   )
 }
 
-//    "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
 
 export class DictModel extends Component {
   static propTypes = {
@@ -74,10 +72,12 @@ export class DictModel extends Component {
         ?class _:b1 <${this.props.url}>
       }
       `
-    const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
+    const url = "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
+    // const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
     const endpoint = "https://api.allorigins.win/get?url=" + encodeURIComponent(jsonpUri)
 
+    /// FIXME: set CORS on sparql endpoint and get rid of alloworigins.win.
     fetch(endpoint)
       .then((response) => {
         console.log("response", response)
@@ -88,7 +88,8 @@ export class DictModel extends Component {
         })
       .then((data) => {
         console.log("fetched data", data)
-        const triple = JSON.parse(data.contents).results.bindings[0]
+        data = JSON.parse(data.contents) /// FIXME: remove this line after removing alloworigins.win
+        const triple = data.results.bindings[0]
         const content = Object.fromEntries(
           Object.entries(triple).map(
             ([k,v], i) => [k, v.value] )
@@ -98,7 +99,7 @@ export class DictModel extends Component {
         })
       .catch((e) => {
         console.log("error fetching data from %s", endpoint, e)
-        this.setState({data: {field: "Error fetching data", class: "", domain: ""}})
+        this.setState({data: null})
       })
   }
 
@@ -117,18 +118,23 @@ export class DictModel extends Component {
       }
     }
     return (
-      <div className="App">
+      <div className="opblock opblock-get opblock-description-wrapper">
+        Vocabulary <a href={url} title={ "This value is relative to the vocabulary " + url } target={"_blank"} rel={"noreferrer"}>URI 🔗</a>
+        &nbsp;
         {
           this.state && this.state.data &&
-          <div style={{backgroundColor: "lightyellow"}}>
-            <ModelCollapse isOpened={false} title={"Vocabulary"}><br/>
+            <ModelCollapse isOpened={false} title={"See more"}>
 
-            <br/><a href={url} title={ "This value is relative to the vocabulary " + url } >Vocabulary URL</a>
-            <br/>Entry RDF Type: <a href={this.state.data.class}> { basename(this.state.data.class)}</a>
-            <br/>Property <a href={this.state.data.field}> { basename(this.state.data.field)}</a>
-            <br/>of Class <a href={this.state.data.domain}>{ basename(this.state.data.domain)}</a>
+            <br/>Entry RDF Type: <a href={this.state.data.class}
+            target={"_blank"} rel={"noreferrer"}
+             > { basename(this.state.data.class) } 🔗</a>
+            <br/>Property <a href={this.state.data.field}
+            target={"_blank"} rel={"noreferrer"}
+              > { basename(this.state.data.field)} 🔗</a>
+            <br/>of Class <a href={this.state.data.domain}
+            target={"_blank"} rel={"noreferrer"}
+            >{ basename(this.state.data.domain)} 🔗</a>
             </ModelCollapse>
-          </div>
         }
       </div>
     )
@@ -230,7 +236,10 @@ export default class ObjectModel extends Component {
 
     const jsonldPlaygroundUrl = "https://json-ld.org/playground/#startTab=tab-expand&json-ld="
     const openInPlayground = (example && jsonldContext &&
-      <a href={ jsonldPlaygroundUrl + encodeURIComponent(JSON.stringify({ "@context": jsonldContext, ...example}))} >Open in playground 🔗</a>
+      <a
+        href={ jsonldPlaygroundUrl + encodeURIComponent(JSON.stringify({ "@context": jsonldContext, ...example}))}
+        target={"_blank"}
+        rel={"noreferrer"} >Open in playground 🔗</a>
     )
 
 
