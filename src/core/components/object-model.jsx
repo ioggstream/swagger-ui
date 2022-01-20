@@ -14,18 +14,16 @@ const basename = (path) => {
 
 
 /** Hacky function to associate a jsonld context to a schema. */
-const contestualizza = (key, ctx, getComponent) => {
-  console.log("contestualizza", key, ctx)
-  if (!ctx) return "No semantics"
-  if (typeof ctx !== "object") return "Only object contexts are supported"
-  if (!Object.keys(ctx).length) return "No semantics"
+const contestualizza = (key, jsonldContext) => {
+  console.log("contestualizza", key, jsonldContext)
+  if (!(key && jsonldContext)) return null
 
-  let field = ctx.get(key)
-  let vocab = ctx.get("@vocab") || ""
+  let field = jsonldContext.get(key)
+  let vocab = jsonldContext.get("@vocab") || ""
   let vocabularyUri = null
   let ns = ""
   if (field === null) {
-    return "No semantics"
+    return null
   }
   if (field === undefined) {
     field = key
@@ -41,17 +39,40 @@ const contestualizza = (key, ctx, getComponent) => {
     const [a, b] = field.split(":", 2)
     field = b
     ns = a
-    vocab = ctx.get(ns) || ""
+    vocab = jsonldContext.get(ns) || ""
   }
 
-  return (
-    <div>
-      <a href={vocab + field}>
-        {(ns ? ns + ":" : "" )+ field}
-      </a>&nbsp;
-      <span><DictModel url={ vocabularyUri } getComponent={getComponent}/></span>
-    </div>
-  )
+  return { fieldName: field, fieldUri: vocab + field, vocabularyUri: vocabularyUri, ns: ns }
+}
+
+export class ContextModel extends Component {
+  static propTypes = {
+    propertyName: PropTypes.string.isRequired,
+    jsonldContext: PropTypes.string.isRequired,
+    getComponent: PropTypes.func.isRequired,
+  }
+
+  render() {
+    let { propertyName, jsonldContext, getComponent, ...otherProps } = this.props
+    console.log("ContextModel", this.props)
+    if (!jsonldContext) return "No semantics"
+    if (typeof jsonldContext !== "object") return "Only object contexts are supported"
+    if (!Object.keys(jsonldContext).length) return "No semantics"
+
+    let ret = contestualizza(propertyName, jsonldContext)
+    if (!ret) {
+      return "No semantics"
+    }
+    let { fieldName: fieldName, fieldUri: fieldUri, vocabularyUri: vocabularyUri, ns: ns } = ret
+    return (
+      <div>
+        <a href={fieldUri}>
+          {(ns ? ns + ":" : "") + fieldName}
+        </a>&nbsp;
+        <span><DictModel url={vocabularyUri} getComponent={getComponent} /></span>
+      </div>
+    )
+  }
 }
 
 
@@ -73,11 +94,10 @@ export class DictModel extends Component {
       }
       `
     const url = "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
-    // const url = "https://ontopia-virtuoso.agid.gov.it/sparql"
     const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
+    /// FIXME: set CORS on sparql endpoint and get rid of alloworigins.win.
     const endpoint = "https://api.allorigins.win/get?url=" + encodeURIComponent(jsonpUri)
 
-    /// FIXME: set CORS on sparql endpoint and get rid of alloworigins.win.
     fetch(endpoint)
       .then((response) => {
         console.log("response", response)
@@ -85,21 +105,21 @@ export class DictModel extends Component {
           throw Error(response.statusText)
         }
         return response.json()
-        })
+      })
       .then((data) => {
         console.log("fetched data", data)
         data = JSON.parse(data.contents) /// FIXME: remove this line after removing alloworigins.win
         const triple = data.results.bindings[0]
         const content = Object.fromEntries(
           Object.entries(triple).map(
-            ([k,v], i) => [k, v.value] )
+            ([k, v], i) => [k, v.value])
         )
         console.log("semantic data", content)
-        this.setState({data: content})
-        })
+        this.setState({ data: content })
+      })
       .catch((e) => {
         console.log("error fetching data from %s", endpoint, e)
-        this.setState({data: null})
+        this.setState({ data: null })
       })
   }
 
@@ -114,30 +134,46 @@ export class DictModel extends Component {
       try {
         this.getOntology()
       } catch {
-        this.setState({data: {}})
+        this.setState({ data: {} })
       }
     }
     return (
       <div className="opblock opblock-get opblock-description-wrapper">
-        Vocabulary <a href={url} title={ "This value is relative to the vocabulary " + url } target={"_blank"} rel={"noreferrer"}>URI 🔗</a>
+        Vocabulary <a href={url} title={"This value is relative to the vocabulary " + url} target={"_blank"} rel={"noreferrer"}>URI 🔗</a>
         &nbsp;
         {
           this.state && this.state.data &&
-            <ModelCollapse isOpened={false} title={"See more"}>
+          <ModelCollapse isOpened={false} title={"See more"}>
 
-            <br/>Entry RDF Type: <a href={this.state.data.class}
-            target={"_blank"} rel={"noreferrer"}
-             > { basename(this.state.data.class) } 🔗</a>
-            <br/>Property <a href={this.state.data.field}
-            target={"_blank"} rel={"noreferrer"}
-              > { basename(this.state.data.field)} 🔗</a>
-            <br/>of Class <a href={this.state.data.domain}
-            target={"_blank"} rel={"noreferrer"}
-            >{ basename(this.state.data.domain)} 🔗</a>
-            </ModelCollapse>
+            <br />Entry RDF Type: <a href={this.state.data.class}
+              target={"_blank"} rel={"noreferrer"}
+            > {basename(this.state.data.class)} 🔗</a>
+            <br />Property <a href={this.state.data.field}
+              target={"_blank"} rel={"noreferrer"}
+            > {basename(this.state.data.field)} 🔗</a>
+            <br />of Class <a href={this.state.data.domain}
+              target={"_blank"} rel={"noreferrer"}
+            >{basename(this.state.data.domain)} 🔗</a>
+          </ModelCollapse>
         }
       </div>
     )
+  }
+}
+
+class OntoScore extends Component {
+  static propTypes = {
+    semanticScore: PropTypes.object.isRequired,
+  }
+
+  render() {
+    let { semanticScore } = this.props
+    return <span 
+      style={{float: "right"}}
+      className={ "opblock " + (
+         semanticScore.ratio > 0.9 ? "opblock-post"
+        : semanticScore.ratio > 0.5 ? "opblock-get" 
+        : "opblock-delete") } >&nbsp;{"OntoScore: " + semanticScore.ratio}</span>
   }
 }
 
@@ -168,8 +204,8 @@ export default class ObjectModel extends Component {
       if (doc && doc.toJS){
         doc = doc.toJS()
       }
-      const ctx = this.props.schema.get("x-jsonld-context") && this.props.schema.get("x-jsonld-context").toJS() || {}
-      doc["@context"] = ctx
+      const jsonldContext = this.props.schema.get("x-jsonld-context") && this.props.schema.get("x-jsonld-context").toJS() || {}
+      doc["@context"] = jsonldContext
       console.log("toRdf", doc)
       const rdfExample = await jsonld.toRDF(doc, { format: "application/n-quads" })
       if (!this.state) {
@@ -186,6 +222,25 @@ export default class ObjectModel extends Component {
     }
   }
 
+  evaluateSemanticScore = (properties, jsonldContext) => {
+    let countSemantic = 0
+    console.log("jsonldContext", jsonldContext, properties)
+    if (jsonldContext && (jsonldContext.entrySeq !== undefined)) {
+      jsonldContext.entrySeq().toArray().map(
+        ([key,]) => {
+          const semanticReference = properties.get(key)
+          if (semanticReference != undefined && semanticReference != null) {
+            countSemantic++
+          }
+        })
+    }
+
+    const countProperties = properties ? properties.count() : 0
+    return {
+      countProperties: countProperties, countSemantic: countSemantic, ratio:
+        (countProperties > 0 ? countSemantic / countProperties : 0)
+    }
+  }
 
   render(){
     let { schema, name, displayName, isRef, getComponent, getConfigs, depth, onToggle, expanded, specPath, ...otherProps } = this.props
@@ -214,6 +269,9 @@ export default class ObjectModel extends Component {
     const Model = getComponent("Model")
     const ModelCollapse = getComponent("ModelCollapse")
     const Property = getComponent("Property")
+
+    // Evaluate semantic score.
+    const semanticScore = this.evaluateSemanticScore(properties, jsonldContext)
 
     const JumpToPathSection = () => {
       return <span className="model-jump-to-path"><JumpToPath specPath={specPath} /></span>
@@ -247,6 +305,7 @@ export default class ObjectModel extends Component {
       this.toRdf()
     }
     return <span className="model">
+      <OntoScore semanticScore={semanticScore} />
       <ModelCollapse
         modelName={name}
         title={titleEl}
@@ -302,11 +361,12 @@ export default class ObjectModel extends Component {
                         classNames.push("required")
                       }
 
+                      console.log("key", key, jsonldContext)
                       return (<tr key={key} className={classNames.join(" ")}>
                         <td>
                           { key }{ isRequired && <span className="star">*</span> }
                         </td>
-                        <td>{jsonldContext && contestualizza(key, jsonldContext, getComponent)}</td>
+                        <td>{jsonldContext && <ContextModel propertyName={key} jsonldContext={jsonldContext} getComponent={getComponent} />}</td>
                         <td>
                           <Model key={ `object-${name}-${key}_${value}` } { ...otherProps }
                                  required={ isRequired }
@@ -410,7 +470,6 @@ export default class ObjectModel extends Component {
           }
         </span>
         <span className="brace-close">{ braceClose }</span>
-      </ModelCollapse>
       {
         infoProperties.size
           ? infoProperties.entrySeq().map( ( [ key, v ] ) => {
@@ -423,20 +482,25 @@ export default class ObjectModel extends Component {
       <hr/>
       {
         example &&
-              <ModelCollapse title={"Example in JSON and RDF:"} expanded={true}>
+              <ModelCollapse title={"Example"} >
                   {openInPlayground}
-                  <pre>{JSON.stringify(example, null, 2)}</pre>
-                  <div style={{backgroundColor: "lightyellow"}}>
-                    <pre>
-                    {this.state && this.state.rdfExample || "Close and reopen the model to render the example."}
-                    </pre>
+                  <div style={{display: "flex"}} className={ "opblock opblock-post opblock-description-wrapper" } >
+                    <div style={{width: "50%", height: "100%"}}>
+                      JSON
+                      <pre>{JSON.stringify(example, null, 2)}</pre></div>
+                    <div style={{width: "50%", height: "100%"}}>
+                      RDF
+                      <pre style={{wordWrap: "break-word", overflowX: "auto", height: "100%", border: "solid 1px"}}>{ this.state ? this.state.rdfExample : "Close and reopen the model to render the example." }</pre>
+                    </div>
                   </div>
               </ModelCollapse>
       }
       <hr/>
       <ModelCollapse title="JSON-LD Context">
-        <pre>{ jsonldContext && JSON.stringify(jsonldContext, null, 2) || "{}"}</pre>
+        <pre>{ jsonldContext ? JSON.stringify(jsonldContext, null, 2) : "{}"}</pre>
       </ModelCollapse>
+
+    </ModelCollapse>
     </span>
   }
 }
