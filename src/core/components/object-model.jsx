@@ -9,7 +9,11 @@ const braceClose = "}"
 const propClass = "property"
 
 const basename = (path) => {
+  try{
     return path.replace(/.*\/|\.[^.]*$/g, "")
+  } catch(e) {
+    return path
+  }
  }
 
 
@@ -66,10 +70,95 @@ export class ContextModel extends Component {
     let { fieldName: fieldName, fieldUri: fieldUri, vocabularyUri: vocabularyUri, ns: ns } = ret
     return (
       <div>
-        <a href={fieldUri}>
-          {(ns ? ns + ":" : "") + fieldName}
-        </a>&nbsp;
+        <span><PropertyModel url={fieldUri} name={fieldName} ns={ns} getComponent={getComponent} /></span>
         <span><DictModel url={vocabularyUri} getComponent={getComponent} /></span>
+      </div>
+    )
+  }
+}
+
+export class PropertyModel extends Component {
+  static propTypes = {
+    url: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    ns: PropTypes.string.isRequired,
+    getComponent: PropTypes.func.isRequired,
+  }
+
+
+  getOntology = () => {
+    const query = `
+      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+      select distinct * where {
+        <${this.props.url}>
+          rdfs:domain ?domain ;
+          rdfs:range ?class
+        .
+      }
+      `
+    const url = "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
+    const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
+    /// FIXME: set CORS on sparql endpoint and get rid of alloworigins.win.
+    const endpoint = "https://api.allorigins.win/get?url=" + encodeURIComponent(jsonpUri)
+
+    fetch(endpoint)
+      .then((response) => {
+        console.log("response", response)
+        if (!response.ok) {
+          throw Error(response.statusText)
+        }
+        return response.json()
+      })
+      .then((data) => {
+        console.log("fetched data", data)
+        data = JSON.parse(data.contents) /// FIXME: remove this line after removing alloworigins.win
+        const triple = data.results.bindings[0]
+        const content = Object.fromEntries(
+          Object.entries(triple).map(
+            ([k, v], i) => [k, v.value])
+        )
+        console.log("semantic data", content)
+        this.setState({ data: content })
+      })
+      .catch((e) => {
+        console.log("error fetching data from %s", endpoint, e)
+        this.setState({ data: null })
+      })
+  }
+
+  render() {
+    let { url, name, ns, getComponent, ...otherProps } = this.props
+    console.log("url", url, otherProps)
+    const ModelCollapse = getComponent("ModelCollapse")
+
+    if (!url) return <div>NoSemantic</div>
+
+    if (this.state == undefined) {
+      try {
+        this.getOntology()
+      } catch {
+        this.setState({ data: {} })
+      }
+    }
+    return (
+      <div className="opblock opblock-get opblock-description-wrapper">
+        <a href={url} title={"This is the property " + url} target={"_blank"} rel={"noreferrer"}>
+          {(ns ? ns + ":" : "") + name}
+          </a>
+        &nbsp;
+        {
+          this.state && this.state.data &&
+          <ModelCollapse isOpened={true} title={""}>
+
+            <br />is a:<a href={this.state.data.class}
+              target={"_blank"} rel={"noreferrer"}
+            > {basename(this.state.data.class)}</a>
+            <br />class:<a href={this.state.data.domain}
+              target={"_blank"} rel={"noreferrer"}
+            >{basename(this.state.data.domain)}</a>
+          </ModelCollapse>
+        }
       </div>
     )
   }
