@@ -49,6 +49,90 @@ const contestualizza = (key, jsonldContext) => {
   return { fieldName: field, fieldUri: vocab + field, vocabularyUri: vocabularyUri, ns: ns }
 }
 
+export class OntologyClassModel extends Component {
+  static propTypes = {
+    url: PropTypes.string.isRequired,
+    getComponent: PropTypes.func.isRequired,
+  }
+
+
+  getOntology = () => {
+    const query = `
+      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+      select distinct * where {
+        ?property rdfs:domain <${this.props.url}> .
+        ?property rdfs:range ?range .
+
+      }
+      `
+    const url = "https://virtuoso-dev-external-service-ndc-dev.apps.cloudpub.testedev.istat.it/sparql";
+    const jsonpUri = url + "?format=json&query=" + encodeURIComponent(query)
+    /// FIXME: set CORS on sparql endpoint and get rid of alloworigins.win.
+    const endpoint = "https://api.allorigins.win/get?url=" + encodeURIComponent(jsonpUri)
+
+    fetch(endpoint)
+      .then((response) => {
+        console.log("response", response)
+        if (!response.ok) {
+          throw Error(response.statusText)
+        }
+        return response.json()
+      })
+      .then((data) => {
+        console.log("fetched data", data)
+        data = JSON.parse(data.contents) /// FIXME: remove this line after removing alloworigins.win
+        const triple = data.results.bindings
+        const content = Object.entries(triple).map(
+            ([k, v], i) => [k, {property: v.property.value, range: v.range ? v.range.value: null}])
+        
+        console.log("rdf:type data", content)
+        this.setState({ data: content })
+      })
+      .catch((e) => {
+        console.log("error fetching data from %s", endpoint, e)
+        this.setState({ data: null })
+      })
+  }
+
+  render() {
+    let { url, getComponent, ...otherProps } = this.props
+    console.log("url", url, otherProps)
+    const ModelCollapse = getComponent("ModelCollapse")
+
+    if (!url) return <div>NoRDFType</div>
+
+    if (this.state == undefined) {
+      try {
+        this.getOntology()
+      } catch {
+        this.setState({ data: [] })
+      }
+    }
+    return (
+      <div className="opblock opblock-patch opblock-description-wrapper">
+        RDF Type: <a href={url} title={"This is the class " + url} target={"_blank"} rel={"noreferrer"}>
+          {basename(url)}
+        </a>
+        &nbsp;
+        {
+          this.state && this.state.data &&
+          <ModelCollapse title="Show details">
+            {
+              this.state.data.map(([i, ontoProperty]) => {
+                return (<span>
+                  <br />➥
+                  <a href={ontoProperty.property} target={"_blank"} rel={"noreferrer"} > {basename(ontoProperty.property)}</a>
+                  [ <a href={ontoProperty.range} target={"_blank"} rel={"noreferrer"} >{basename(ontoProperty.range)}</a> ]
+                </span>)
+              })}
+          </ModelCollapse>
+        }
+      </div>
+    )
+  }
+}
+
 export class ContextModel extends Component {
   static propTypes = {
     propertyName: PropTypes.string.isRequired,
@@ -343,6 +427,7 @@ export default class ObjectModel extends Component {
     const { showExtensions } = getConfigs()
 
     let jsonldContext = schema.get("x-jsonld-context") || {}
+    let jsonldType = schema.get("x-jsonld-type") || null
     let description = schema.get("description")
     let properties = schema.get("properties")
     let additionalProperties = schema.get("additionalProperties")
@@ -562,7 +647,7 @@ export default class ObjectModel extends Component {
       {
         infoProperties.size
           ? infoProperties.entrySeq().map( ( [ key, v ] ) => {
-            if (!(key in ["example", "x-jsonld-context"])) { // exapmle is rendered below
+            if (!(key in ["example", "x-jsonld-context"])) { // example is rendered below
               return <Property key={`${key}-${v}`} propKey={ key } propVal={ v } propClass={ propClass } />
             }
           })
@@ -588,6 +673,8 @@ export default class ObjectModel extends Component {
       <ModelCollapse title="JSON-LD Context">
         <pre>{ jsonldContext ? JSON.stringify(jsonldContext, null, 2) : "{}"}</pre>
       </ModelCollapse>
+      
+      <OntologyClassModel url={jsonldType} getComponent={getComponent} />
 
     </ModelCollapse>
     </span>
