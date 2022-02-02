@@ -66,8 +66,8 @@ components:
       type: string
       # Since jsonld does not support to attach a @context
       #  to a primitive type, we reference the semantic
-      #  context using `x-refersTo.`
-      x-refersTo: https://w3id.org/italia/onto/CPV/taxCode
+      #  context using `x-jsonld-type.`
+      x-jsonld-type: https://w3id.org/italia/onto/CPV/taxCode
       description: Il codice fiscale.
       example: RSSMRA75L01H501A
       maxLength: 16
@@ -95,7 +95,7 @@ components:
         "@vocab": "https://w3id.org/italia/onto/CPV/"
         parent_id: taxCode
       type: object
-      x-refersTo: https://w3id.org/italia/onto/CPV/Person
+      x-jsonld-type: https://w3id.org/italia/onto/CPV/Person
       description: |-
         Uno schema semplificato per associare una sola chiave
         che identifica un genitore.
@@ -154,7 +154,7 @@ components:
         interno: "Interno 8"
     Person:
       type: object
-      x-refersTo: https://w3id.org/italia/onto/CPV/Person
+      x-jsonld-type: https://w3id.org/italia/onto/CPV/Person
       # This custom property defines the associated json-ld
       #   context that can be used to semantically describe
       #   the instances.
