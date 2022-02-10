@@ -66,8 +66,8 @@ components:
       type: string
       # Since jsonld does not support to attach a @context
       #  to a primitive type, we reference the semantic
-      #  context using `x-jsonld-type.`
-      x-jsonld-type: https://w3id.org/italia/onto/CPV/taxCode
+      #  context using `x-refersTo.`
+      x-refersTo: https://w3id.org/italia/onto/CPV/taxCode
       description: Il codice fiscale.
       example: RSSMRA75L01H501A
       maxLength: 16
